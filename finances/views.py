@@ -7,6 +7,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from finances.models import Category  
+from finances.langchain_agent import agent
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
@@ -27,46 +28,44 @@ print(f"Token loaded: {TELEGRAM_TOKEN}")
 
 @csrf_exempt
 def telegram_webhook(request):
-    """Handles incoming webhook requests from Telegram."""
+    """Maneja las solicitudes entrantes desde Telegram."""
     if request.method == 'POST':
         try:
-            # Parse the raw request body
-            raw_body = request.body.decode('utf-8')
-            logger.info(f"Raw body received: {raw_body}")
-            body = json.loads(raw_body)
-
-            # Extract chat_id and text from the message
+            body = json.loads(request.body.decode('utf-8'))
             chat_id = body.get('message', {}).get('chat', {}).get('id')
             text = body.get('message', {}).get('text', '')
 
-            if not chat_id:
-                logger.error("Failed to retrieve chat_id")
-                return JsonResponse({"error": "chat_id not found"}, status=400)
+            if not chat_id or not text:
+                return JsonResponse({"error": "Invalid request"}, status=400)
 
-            # Route the commands to their handlers
-            if text.startswith('/start'):
-                handle_start(chat_id)
-            elif text.startswith('/saldo'):
-                handle_balance(chat_id)
-            elif text.startswith('/ingreso'):
-                handle_income(chat_id, text)
-            elif text.startswith('/gasto'):
-                handle_expense(chat_id, text)
-            elif text.startswith('/categorias'):
-                handle_categories(chat_id)
+            # Procesar comandos
+            if text.startswith('/'):
+                if text.startswith('/start'):
+                    handle_start(chat_id)
+                elif text.startswith('/saldo'):
+                    handle_balance(chat_id)
+                elif text.startswith('/ingreso'):
+                    _, monto, categoria = text.split()
+                    handle_income(chat_id, f"/ingreso {monto} {categoria}")
+                elif text.startswith('/gasto'):
+                    _, monto, categoria = text.split()
+                    handle_expense(chat_id, f"/gasto {monto} {categoria}")
+                elif text.startswith('/categorias'):
+                    handle_categories(chat_id)
+                else:
+                    send_message(chat_id, "Comando no reconocido. Usa /ayuda para ver los comandos disponibles.")
             else:
-                send_message(chat_id, "Comando no reconocido. Usa /ayuda para ver los comandos disponibles.")
+                # Consultas libres procesadas por LangChain
+                response = agent.run(input=text)
+                send_message(chat_id, response)
 
             return JsonResponse({"status": "ok"})
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {e}")
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+            logger.error(f"Error in webhook: {e}")
             return JsonResponse({"error": str(e)}, status=500)
-    else:
-        logger.warning("Invalid method on /webhook/")
-        return JsonResponse({"error": "Invalid method"}, status=405)
+    return JsonResponse({"error": "Invalid method"}, status=405)
+
+
 
 
 def handle_start(chat_id):
