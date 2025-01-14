@@ -8,6 +8,7 @@ FortunoBot es un bot de Telegram diseñado para administrar transacciones person
 - Consulta del saldo actual: Muestra el saldo disponible del usuario.
 - Gestión de categorías: Lista las categorías disponibles o permite crear nuevas automáticamente al registrar transacciones.
 - Comandos interactivos: Utiliza comandos de Telegram para una experiencia sencilla e intuitiva.
+- Consultas libres: Integra LangChain para responder preguntas relacionadas con finanzas personales y ofrecer asesoramiento.
 
 ## Comandos disponibles
 
@@ -98,6 +99,7 @@ FortunoApp/
 │   ├── apps.py
 │   ├── models.py
 │   ├── views.py
+│   ├── langchain_agent.py
 │   ├── migrations/
 │   └── templates/
 ├── fortuno/
@@ -135,6 +137,20 @@ FortunoApp/
 - **type**: Tipo de transacción (ingreso o gasto).
 - **amount**: Monto de la transacción.
 - **created_at**: Fecha de la transacción.
+
+## Integración con LangChain
+
+1. Consultar Saldo:
+- Permite consultar el saldo actual de un usuario registrado en la base de datos.
+- Entrada esperada: chat_id del usuario.
+
+2. Registrar Ingreso:
+- Registra un ingreso para un usuario en una categoría específica.
+- Entrada esperada: chat_id,monto,categoría.
+
+3. Dar Consejo Financiero:
+- Usa LangChain para responder preguntas relacionadas con finanzas personales.
+- Entrada esperada: Una pregunta abierta, como "¿Cómo puedo reducir gastos?".
 
 ### Logs
 
